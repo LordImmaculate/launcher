@@ -1,46 +1,32 @@
 import { Button } from "./ui/button";
-import { MdEdit } from "react-icons/md";
 import Image from "next/image";
-
-type service = {
-  name: string;
-  status: string;
-  id: string;
-};
+import EditDialog from "./edit-dialog";
+import type { App } from "@prisma/client";
 
 export default async function StatusBlock({
-  service,
+  app,
   userId
 }: {
-  service: service | null;
+  app: App | null;
   userId: string;
 }) {
-  if (!service) return null;
-
-  const imageExists = await Bun.file(
-    `./public/uploads/${userId}/${service.id}.webp`
-  ).exists();
+  if (!app) return null;
 
   return (
     <Button asChild variant="outline" className="h-36 w-36 relative group">
       <div>
-        <Button
-          size="icon"
-          className="absolute top-2 right-2 z-10 group-hover:opacity-100 opacity-0 transition-opacity duration-300"
+        <EditDialog app={app} />
+        <a
+          href={app.url ?? "/"}
+          target={app.url ? "_blank" : ""}
+          rel="noopener noreferrer"
         >
-          <MdEdit />
-        </Button>
-        <a href="https://google.com" target="_blank" rel="noopener noreferrer">
           <Image
-            src={
-              imageExists
-                ? `/uploads/${userId}/${service.id}.webp`
-                : "/placeholder.svg"
-            }
-            alt={service.name}
+            src={app.imagePath ?? "/placeholder.svg"}
+            alt={app.name}
             width={200}
             height={200}
-            className="rounded-md p-2"
+            className="rounded-2xl p-2"
           />
         </a>
       </div>
