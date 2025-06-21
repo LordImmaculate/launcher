@@ -22,9 +22,12 @@ export default async function StatusBlock({
   ).exists();
 
   return (
-    <Button asChild variant="outline" className="h-36 w-36 relative">
+    <Button asChild variant="outline" className="h-36 w-36 relative group">
       <div>
-        <Button size="icon" className="fixed top-2 right-2 z-10">
+        <Button
+          size="icon"
+          className="absolute top-2 right-2 z-10 group-hover:opacity-100 opacity-0 transition-opacity duration-300"
+        >
           <MdEdit />
         </Button>
         <a href="https://google.com" target="_blank" rel="noopener noreferrer">
