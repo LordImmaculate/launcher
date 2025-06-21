@@ -51,7 +51,7 @@ export default function AppDialog({
         data: {
           name,
           url,
-          imagePath: newFile ?? null,
+          imagePath: newFile ?? undefined,
           userId: session.user.id
         }
       });
@@ -59,7 +59,7 @@ export default function AppDialog({
       appID = newApp.id;
     }
 
-    if (image) {
+    if (image.size > 0) {
       newFile = await uploadFile(image, session.user.id, appID);
       if (typeof newFile != "string") return;
     }
@@ -69,7 +69,7 @@ export default function AppDialog({
       data: {
         name,
         url,
-        imagePath: newFile ?? null
+        imagePath: newFile ?? undefined
       }
     });
 
@@ -87,7 +87,7 @@ export default function AppDialog({
     });
 
     if (oldImage?.imagePath) {
-      Bun.file(`./public${oldImage.imagePath}.webp`).delete();
+      Bun.file(`./public${oldImage.imagePath}`).delete();
     }
 
     await prisma.app.delete({ where: { id: app.id } });
@@ -168,8 +168,9 @@ export async function uploadFile(image: File, userId: string, id: string) {
   try {
     await sharp(buffer).webp({ quality: 80 }).toFile(`${filePath}.webp`);
 
-    if (oldImage?.imagePath)
-      Bun.file(`./public${oldImage?.imagePath}.webp`).delete();
+    if (oldImage?.imagePath) {
+      Bun.file(`./public${oldImage?.imagePath}`).delete();
+    }
 
     return `${publicPath}.webp`;
   } catch (error) {
