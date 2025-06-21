@@ -20,6 +20,7 @@ model User {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    App       App[]
 }
 
 model Account {
@@ -79,6 +80,8 @@ model Authenticator {
 
 model App {
     id          String   @id @default(cuid())
+    userId      String
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     name        String
     url         String?
     imagePath   String?

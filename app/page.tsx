@@ -10,12 +10,14 @@ export default async function Home() {
   const session = await auth();
   if (!session || !session.user?.id) redirect("/auth/sign-in");
 
-  const apps = await prisma.app.findMany();
+  const apps = await prisma.app.findMany({
+    where: { userId: session.user.id }
+  });
 
   const trigger = (
     <Button variant="outline" className="h-36 w-36 relative group">
       <FaPlus />
-      <span className="absolute bottom-1 group-hover:opacity-100 opacity-0 transition-opacity duration-300 text-center text-sm">
+      <span className="absolute bottom-1 group-hover:opacity-100 opacity-0 transition-opacity duration-300 text-center text-sm grid-flow-col">
         Create an App
       </span>
     </Button>

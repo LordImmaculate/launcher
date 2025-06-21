@@ -51,7 +51,8 @@ export default function AppDialog({
         data: {
           name,
           url,
-          imagePath: newFile ?? null
+          imagePath: newFile ?? null,
+          userId: session.user.id
         }
       });
 
