@@ -1,4 +1,3 @@
-import { MdEdit } from "react-icons/md";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -45,21 +44,9 @@ export default function AppDialog({
 
     let newFile: string | null | boolean = null;
 
-    if (editing && app) {
-      await prisma.app.update({
-        where: { id: app.id },
-        data: {
-          name,
-          url,
-          imagePath: newFile ?? null
-        }
-      });
+    let appID = app?.id ?? "";
 
-      if (image) {
-        newFile = await uploadFile(image, session.user.id, app.id);
-        if (typeof newFile != "string") return;
-      }
-    } else {
+    if (!editing || !app) {
       const newApp = await prisma.app.create({
         data: {
           name,
@@ -68,12 +55,41 @@ export default function AppDialog({
         }
       });
 
-      if (image) {
-        newFile = await uploadFile(image, session.user.id, newApp.id);
-        if (typeof newFile != "string") return;
-      }
+      appID = newApp.id;
     }
 
+    if (image) {
+      newFile = await uploadFile(image, session.user.id, appID);
+      if (typeof newFile != "string") return;
+    }
+
+    await prisma.app.update({
+      where: { id: appID },
+      data: {
+        name,
+        url,
+        imagePath: newFile ?? null
+      }
+    });
+
+    revalidatePath("/");
+  }
+
+  async function deleteApp() {
+    "use server";
+
+    if (!app) return;
+
+    const oldImage = await prisma.app.findUnique({
+      where: { id: app.id },
+      select: { imagePath: true }
+    });
+
+    if (oldImage?.imagePath) {
+      Bun.file(`./public${oldImage.imagePath}.webp`).delete();
+    }
+
+    await prisma.app.delete({ where: { id: app.id } });
     revalidatePath("/");
   }
 
@@ -112,6 +128,13 @@ export default function AppDialog({
           <Input id="image" type="file" name="image" accept="image/*" />
           <Button type="submit">{editing ? "Edit" : "Create"}</Button>
         </form>
+        {editing ? (
+          <form action={deleteApp}>
+            <Button className="w-full" type="submit" variant="destructive">
+              Delete
+            </Button>
+          </form>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
@@ -143,7 +166,9 @@ export async function uploadFile(image: File, userId: string, id: string) {
 
   try {
     await sharp(buffer).webp({ quality: 80 }).toFile(`${filePath}.webp`);
-    Bun.file(`${oldImage}.webp`).delete();
+
+    if (oldImage?.imagePath)
+      Bun.file(`./public${oldImage?.imagePath}.webp`).delete();
 
     return `${publicPath}.webp`;
   } catch (error) {
