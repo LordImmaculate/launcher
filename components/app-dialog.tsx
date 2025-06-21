@@ -19,8 +19,19 @@ import sharp from "sharp";
 import { prisma } from "@/prisma";
 import { v4 as uuid } from "uuid";
 
-export default function EditDialog({ app }: { app: App }) {
-  async function editApp(formData: FormData) {
+export default function AppDialog({
+  app,
+  trigger,
+  type
+}: {
+  app?: App;
+  trigger: React.ReactNode;
+  type: "edit" | "create";
+}) {
+  const editing = type === "edit";
+  if (editing && !app) throw new Error("App is required for editing");
+
+  async function appHandling(formData: FormData) {
     "use server";
 
     const session = await auth();
@@ -34,46 +45,56 @@ export default function EditDialog({ app }: { app: App }) {
 
     let newFile: string | null | boolean = null;
 
-    if (image) {
-      newFile = await uploadFile(image, session.user.id, app.id);
-      if (typeof newFile != "string") return;
-    }
+    if (editing && app) {
+      await prisma.app.update({
+        where: { id: app.id },
+        data: {
+          name,
+          url,
+          imagePath: newFile ?? null
+        }
+      });
 
-    await prisma.app.update({
-      where: { id: app.id },
-      data: {
-        name,
-        url,
-        imagePath: newFile ?? null
+      if (image) {
+        newFile = await uploadFile(image, session.user.id, app.id);
+        if (typeof newFile != "string") return;
       }
-    });
+    } else {
+      const newApp = await prisma.app.create({
+        data: {
+          name,
+          url,
+          imagePath: newFile ?? null
+        }
+      });
+
+      if (image) {
+        newFile = await uploadFile(image, session.user.id, newApp.id);
+        if (typeof newFile != "string") return;
+      }
+    }
 
     revalidatePath("/");
   }
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          className="absolute top-2 right-2 z-10 group-hover:opacity-100 opacity-0 transition-opacity duration-300"
-        >
-          <MdEdit />
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{`Edit ${app.name}`}</DialogTitle>
-          <DialogDescription>{`App ID: ${app.id}`}</DialogDescription>
+          <DialogTitle>{editing ? `Edit ${app?.name}` : "Create"}</DialogTitle>
+          <DialogDescription>
+            {app ? `App ID: ${app.id}` : "Create a new app"}
+          </DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-4" action={editApp}>
+        <form className="flex flex-col gap-4" action={appHandling}>
           <Label htmlFor="name">Name</Label>
           <Input
             type="text"
             id="name"
             name="name"
             placeholder="App Name"
-            defaultValue={app.name}
+            defaultValue={app?.name}
             className="mb-4"
             required
           />
@@ -83,13 +104,13 @@ export default function EditDialog({ app }: { app: App }) {
             id="url"
             name="url"
             placeholder="App URL"
-            defaultValue={app.url ?? ""}
+            defaultValue={app?.url ?? ""}
             className="mb-4"
             required
           />
           <Label htmlFor="image">Image</Label>
           <Input id="image" type="file" name="image" accept="image/*" />
-          <Button type="submit">Edit</Button>
+          <Button type="submit">{editing ? "Edit" : "Create"}</Button>
         </form>
       </DialogContent>
     </Dialog>
